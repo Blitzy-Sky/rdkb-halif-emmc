@@ -1,1 +1,1 @@
-docs/pages/eMMCHalSpec.md
+docs/pages/halSpec.md
