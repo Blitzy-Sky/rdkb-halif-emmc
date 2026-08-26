@@ -84,7 +84,7 @@ typedef enum _stmgr_ReturnCode {
     RDK_STMGR_RETURN_SUCCESS = 0,          /*!< The requested information was read and the caller's structure has been populated. */
     RDK_STMGR_RETURN_GENERIC_FAILURE = -1, /*!< The read failed for a reason the implementation attributes to itself or to the storage subsystem. The caller's structure must be treated as unpopulated. */
     RDK_STMGR_RETURN_INIT_FAILURE = -2,    /*!< The implementation could not bring up the resources it needs to reach the device. This interface declares no initialization call, so the code reports a failure internal to the implementation rather than a step the caller omitted. */
-    RDK_STMGR_RETURN_INVALID_INPUT = -3,   /*!< The supplied pointer is NULL or does not address caller-allocated storage of the declared type. Nothing is written to it. */
+    RDK_STMGR_RETURN_INVALID_INPUT = -3,   /*!< The implementation reported the call as rejected on an input or state check it makes. Which condition produced it, whether the read had been attempted, and whether anything was written through the caller's pointer are all unstated, so the caller's structure must be treated as unpopulated - as it must for every failure code - and a repeat of the same call in the same state must not be assumed to behave the same way. Passing a non-NULL pointer is a caller pre-condition; NULL is the one invalid input a callee can detect at all, so it is at most one example of what may map here rather than the definition of the code, which this interface neither restricts to NULL nor enumerates further, and a caller must not read the absence of this code as evidence that its arguments were accepted as valid. What cannot be reported here is a non-NULL pointer that does not address writable storage of the declared type: C gives an implementation no way to determine where a pointer came from or how far it extends, so such a call is written through as though it were correct - undefined behaviour rather than a reported error. */
     RDK_STMGR_RETURN_UNKNOWN_FAILURE = -4  /*!< The read failed for a reason the implementation cannot attribute. This interface does not partition the unattributable case further from RDK_STMGR_RETURN_GENERIC_FAILURE, so a caller cannot distinguish the two by cause. */
 } eSTMGRReturns;
 
@@ -343,19 +343,41 @@ typedef struct _stmgr_CallBackData{
  * during system bootup.
  *
  * @param[out] pHealthInfo Pointer to a caller-allocated eSTMGRHealthInfo that the
- *                         implementation fills in. It must be non-NULL and must
- *                         address storage of the declared type. The caller both
- *                         allocates and releases that storage, which the `Memory
- *                         Model` topic of the repository specification places on the
- *                         caller; the implementation manages and releases only its own
- *                         internal allocations. Nothing in this interface establishes
- *                         that the implementation retains the pointer beyond the call,
- *                         so the caller keeps ownership and may reuse or release the
- *                         storage once the function has returned. The record's fixed
- *                         arrays bound what may be read from it: m_deviceID holds
- *                         RDK_STMGR_MAX_STRING_LENGTH (128) bytes; each of the five
- *                         eSTMGRDiagAttributesList members it contains - the m_list
- *                         arm of m_diagnostics, m_lifetimesList,
+ *                         implementation fills in. The caller guarantees - and the
+ *                         implementation cannot verify - that it is non-NULL, that it
+ *                         addresses writable storage of at least
+ *                         sizeof(eSTMGRHealthInfo) bytes correctly aligned for that
+ *                         type, and that the storage remains valid for the whole call.
+ *                         C gives an implementation no way to learn where a non-NULL
+ *                         pointer came from or how far it extends, so a pointer that is
+ *                         merely wrong - one addressing a smaller object, a released
+ *                         allocation, an interior position or automatic storage that
+ *                         has gone out of scope - is written through as though it were
+ *                         correct, corrupting the caller's memory. That outcome is not
+ *                         reported through the return value and cannot be. A NULL
+ *                         pointer, by contrast, is an input an implementation can test
+ *                         for and reject with RDK_STMGR_RETURN_INVALID_INPUT; that is
+ *                         the one invalid input this interface names, not a definition
+ *                         of the code, and which further invalid-input or invalid-state
+ *                         conditions an implementation maps to it is unspecified here.
+ *                         The caller both allocates and releases that storage, which
+ *                         the `Memory Model` topic of the repository specification
+ *                         places on the caller; the implementation manages and releases
+ *                         only its own internal allocations. This interface does not
+ *                         specify whether the implementation retains the pointer beyond
+ *                         the call, and it declares no call through which a retained
+ *                         pointer could be withdrawn, so a caller must not read the
+ *                         return as permission to release or reuse the storage: it
+ *                         keeps the storage valid and unreused unless it has
+ *                         established the retention behaviour with its vendor. The
+ *                         repository specification records the same absence under
+ *                         `Memory Model` and imposes no non-retention obligation of its
+ *                         own, so there is no obligation here for a caller to rely on
+ *                         and none for it to be denied.
+ *                         The record's fixed arrays bound what may be read from it:
+ *                         m_deviceID holds RDK_STMGR_MAX_STRING_LENGTH (128) bytes;
+ *                         each of the five eSTMGRDiagAttributesList members it
+ *                         contains - the m_list arm of m_diagnostics, m_lifetimesList,
  *                         m_firstExceededConfiguredLife, m_firstExceededMaxLife and
  *                         m_healthStatesList - holds at most
  *                         RDK_STMGR_MAX_DIAGNOSTIC_ATTRIBUTES (20) entries and
@@ -363,11 +385,16 @@ typedef struct _stmgr_CallBackData{
  *                         the m_blob arm of m_diagnostics holds
  *                         RDK_STMGR_DIAGNOSTICS_BLOB_LENGTH (2048) bytes.
  *
- * @pre The interface declares no initialization, open or teardown call, so it imposes
- *      no call ordering on the caller and no session is opened or closed. The only
- *      pre-condition is that pHealthInfo addresses caller-allocated storage of the
- *      declared type; if it does not, the function returns
- *      RDK_STMGR_RETURN_INVALID_INPUT and writes nothing.
+ * @pre The interface declares no initialization, open or teardown call, so it imposes no
+ *      call ordering on the caller and no session is opened or closed. The only
+ *      pre-condition is the one stated on pHealthInfo above, and the caller is the only
+ *      party that can satisfy it. A NULL argument is one an implementation can detect,
+ *      and RDK_STMGR_RETURN_INVALID_INPUT is the code available for reporting a rejected
+ *      input; a non-NULL pointer that does not address writable storage of the declared
+ *      type is not detectable by an implementation and is therefore undefined behaviour
+ *      rather than a reported error. A caller satisfies the pre-condition itself rather
+ *      than relying on any rejection: this interface does not state which inputs or
+ *      states beyond NULL an implementation checks.
  *
  * @post On RDK_STMGR_RETURN_SUCCESS the fields the implementation was able to read
  *       are populated. This interface does not state that fields it could not read
@@ -386,9 +413,17 @@ typedef struct _stmgr_CallBackData{
  *         resources it needs to reach the device. Since this interface declares no
  *         initialization call, there is no caller-side step to repeat: the client
  *         treats health information as unavailable for now and may retry later.
- * @retval RDK_STMGR_RETURN_INVALID_INPUT - pHealthInfo is NULL or does not address
- *         caller-allocated storage of the declared type. The client corrects the call
- *         site; retrying with the same argument cannot succeed.
+ * @retval RDK_STMGR_RETURN_INVALID_INPUT - The implementation reported the call as
+ *         rejected on an input or state check. This code does not establish, and a
+ *         client must not infer: which condition produced it; whether the read had been
+ *         attempted; or whether anything was written through pHealthInfo, which is why
+ *         the record must not be read after any failure. NULL is the one invalid input a
+ *         callee can detect at all and what a client checks first, but it is at most one
+ *         example of what may map here, not the definition of the code, which is neither
+ *         NULL-only nor enumerated. Whether repeating the call in the same state yields
+ *         the same code is unstated, so no retry policy may rest on it. It is also not
+ *         evidence that a non-NULL pointer's storage was validated, which no
+ *         implementation can do, so a wrong pointer is not reported here.
  * @retval RDK_STMGR_RETURN_UNKNOWN_FAILURE - The read failed for a reason the
  *         implementation cannot attribute. The client acts as for
  *         RDK_STMGR_RETURN_GENERIC_FAILURE; this interface does not partition the two
@@ -409,6 +444,13 @@ typedef struct _stmgr_CallBackData{
  *       be absent. This interface states no numeric timeout, so a caller that cannot
  *       tolerate an unbounded wait imposes its own bound.
  *
+ * @warning An implementation cannot validate the storage pHealthInfo addresses. NULL it
+ *          can test for; the provenance and extent of a non-NULL pointer it cannot,
+ *          because C exposes neither to the callee. Whatever other inputs or states an
+ *          implementation may reject with RDK_STMGR_RETURN_INVALID_INPUT, a merely
+ *          wrong pointer is not among them: a caller that passes an unchecked, foreign
+ *          or already-released pointer gets its own memory overwritten rather than a
+ *          return code. The pointer has to be established as correct at the call site.
  * @warning This interface is not required to be thread safe, and the repository
  *          specification places on the calling module the obligation to make its calls
  *          into the eMMC HAL in a thread safe manner - that is, to serialise them.
@@ -436,30 +478,58 @@ eSTMGRReturns CcspHalEmmcGetHealthInfo (eSTMGRHealthInfo* pHealthInfo);
  * under `Initialization and Startup` that it is not called during system bootup.
  *
  * @param[out] pDeviceInfo Pointer to a caller-allocated eSTMGRDeviceInfo that the
- *                         implementation fills in. It must be non-NULL and must
- *                         address storage of the declared type. The caller both
- *                         allocates and releases that storage, which the `Memory
- *                         Model` topic of the repository specification places on the
- *                         caller; the implementation manages and releases only its own
- *                         internal allocations. Nothing in this interface establishes
- *                         that the implementation retains the pointer beyond the call,
- *                         so the caller keeps ownership and may reuse or release the
- *                         storage once the function has returned. The record's fixed
- *                         arrays bound what may be read from it: m_partitions holds
- *                         RDK_STMGR_PARTITION_LENGTH (256) bytes, and each of
- *                         m_deviceID, m_manufacturer, m_model, m_serialNumber,
- *                         m_firmwareVersion, m_hwVersion and m_ifATAstandard holds
+ *                         implementation fills in. The caller guarantees - and the
+ *                         implementation cannot verify - that it is non-NULL, that it
+ *                         addresses writable storage of at least
+ *                         sizeof(eSTMGRDeviceInfo) bytes correctly aligned for that
+ *                         type, and that the storage remains valid for the whole call.
+ *                         C gives an implementation no way to learn where a non-NULL
+ *                         pointer came from or how far it extends, so a pointer that is
+ *                         merely wrong - one addressing a smaller object, a released
+ *                         allocation, an interior position or automatic storage that
+ *                         has gone out of scope - is written through as though it were
+ *                         correct, corrupting the caller's memory. That outcome is not
+ *                         reported through the return value and cannot be. A NULL
+ *                         pointer, by contrast, is an input an implementation can test
+ *                         for and reject with RDK_STMGR_RETURN_INVALID_INPUT; that is
+ *                         the one invalid input this interface names, not a definition
+ *                         of the code, and which further invalid-input or invalid-state
+ *                         conditions an implementation maps to it is unspecified here.
+ *                         The caller both allocates and releases that storage, which
+ *                         the `Memory Model` topic of the repository specification
+ *                         places on the caller; the implementation manages and releases
+ *                         only its own internal allocations. This interface does not
+ *                         specify whether the implementation retains the pointer beyond
+ *                         the call, and it declares no call through which a retained
+ *                         pointer could be withdrawn, so a caller must not read the
+ *                         return as permission to release or reuse the storage: it
+ *                         keeps the storage valid and unreused unless it has
+ *                         established the retention behaviour with its vendor. The
+ *                         repository specification records the same absence under
+ *                         `Memory Model` and imposes no non-retention obligation of its
+ *                         own, so there is no obligation here for a caller to rely on
+ *                         and none for it to be denied.
+ *                         The record's fixed arrays bound what may be read from it:
+ *                         m_partitions holds RDK_STMGR_PARTITION_LENGTH (256) bytes,
+ *                         and each of m_deviceID, m_manufacturer, m_model,
+ *                         m_serialNumber, m_firmwareVersion, m_hwVersion and
+ *                         m_ifATAstandard holds
  *                         RDK_STMGR_MAX_STRING_LENGTH (128) bytes. Because that is
  *                         the array size and this interface does not state whether a
  *                         value that fills an array is NUL-terminated, a caller bounds
  *                         every read by the array size rather than relying on a
  *                         terminator.
  *
- * @pre The interface declares no initialization, open or teardown call, so it imposes
- *      no call ordering on the caller and no session is opened or closed. The only
- *      pre-condition is that pDeviceInfo addresses caller-allocated storage of the
- *      declared type; if it does not, the function returns
- *      RDK_STMGR_RETURN_INVALID_INPUT and writes nothing.
+ * @pre The interface declares no initialization, open or teardown call, so it imposes no
+ *      call ordering on the caller and no session is opened or closed. The only
+ *      pre-condition is the one stated on pDeviceInfo above, and the caller is the only
+ *      party that can satisfy it. A NULL argument is one an implementation can detect,
+ *      and RDK_STMGR_RETURN_INVALID_INPUT is the code available for reporting a rejected
+ *      input; a non-NULL pointer that does not address writable storage of the declared
+ *      type is not detectable by an implementation and is therefore undefined behaviour
+ *      rather than a reported error. A caller satisfies the pre-condition itself rather
+ *      than relying on any rejection: this interface does not state which inputs or
+ *      states beyond NULL an implementation checks.
  *
  * @post On RDK_STMGR_RETURN_SUCCESS the fields the implementation was able to read
  *       are populated. This interface does not state that fields it could not read
@@ -478,9 +548,17 @@ eSTMGRReturns CcspHalEmmcGetHealthInfo (eSTMGRHealthInfo* pHealthInfo);
  *         resources it needs to reach the device. Since this interface declares no
  *         initialization call, there is no caller-side step to repeat: the client
  *         treats device information as unavailable for now and may retry later.
- * @retval RDK_STMGR_RETURN_INVALID_INPUT - pDeviceInfo is NULL or does not address
- *         caller-allocated storage of the declared type. The client corrects the call
- *         site; retrying with the same argument cannot succeed.
+ * @retval RDK_STMGR_RETURN_INVALID_INPUT - The implementation reported the call as
+ *         rejected on an input or state check. This code does not establish, and a
+ *         client must not infer: which condition produced it; whether the read had been
+ *         attempted; or whether anything was written through pDeviceInfo, which is why
+ *         the record must not be read after any failure. NULL is the one invalid input a
+ *         callee can detect at all and what a client checks first, but it is at most one
+ *         example of what may map here, not the definition of the code, which is neither
+ *         NULL-only nor enumerated. Whether repeating the call in the same state yields
+ *         the same code is unstated, so no retry policy may rest on it. It is also not
+ *         evidence that a non-NULL pointer's storage was validated, which no
+ *         implementation can do, so a wrong pointer is not reported here.
  * @retval RDK_STMGR_RETURN_UNKNOWN_FAILURE - The read failed for a reason the
  *         implementation cannot attribute. The client acts as for
  *         RDK_STMGR_RETURN_GENERIC_FAILURE; this interface does not partition the two
@@ -503,6 +581,13 @@ eSTMGRReturns CcspHalEmmcGetHealthInfo (eSTMGRHealthInfo* pHealthInfo);
  *       be absent. This interface states no numeric timeout, so a caller that cannot
  *       tolerate an unbounded wait imposes its own bound.
  *
+ * @warning An implementation cannot validate the storage pDeviceInfo addresses. NULL it
+ *          can test for; the provenance and extent of a non-NULL pointer it cannot,
+ *          because C exposes neither to the callee. Whatever other inputs or states an
+ *          implementation may reject with RDK_STMGR_RETURN_INVALID_INPUT, a merely
+ *          wrong pointer is not among them: a caller that passes an unchecked, foreign
+ *          or already-released pointer gets its own memory overwritten rather than a
+ *          return code. The pointer has to be established as correct at the call site.
  * @warning This interface is not required to be thread safe, and the repository
  *          specification places on the calling module the obligation to make its calls
  *          into the eMMC HAL in a thread safe manner - that is, to serialise them.

@@ -7,6 +7,8 @@
 | 03/12/24 | Initial specification, published with release `1.0.0`. The page declared no document revision of its own. | 1.0.0 |
 | 08/24/26 | Restructured to the canonical HAL specification topic set. API surface, data types, status reporting and the absence of an asynchronous path documented against `include/ccsp_hal_emmc.h`. | 1.1.0 |
 
+**Provenance of this page.** It was renamed from `docs/pages/eMMCHalSpec.md` to `docs/pages/halSpec.md` in the same change that rewrote it against the canonical topic set. Git records a rename only where the two versions still resemble each other, and a full rewrite does not, so `git log --follow -- docs/pages/halSpec.md` begins at that change: the revisions before it are reached with `git log -- docs/pages/eMMCHalSpec.md`.
+
 The `Version` column above is the revision of **this document** and nothing else. Three further
 version identities exist in this repository and none of them is the document revision, so they are
 recorded here once, separately, to keep them apart:
@@ -37,8 +39,12 @@ recorded here once, separately, to keep them apart:
 - `SLA` \- Service Level Agreement
 
 *Source: the terms this document itself uses. `HAL`, `RDK-B` and `OEM` are carried over from the
-previous revision of this specification; `eMMC`, `SMART` and `SLA` are added because the topics below
-use them.*
+previous revision of this specification, which defined those three and no others. `eMMC` and `SMART`
+expand terms `include/ccsp_hal_emmc.h` uses literally - the header's own `m_hasSMARTSupport` comment at
+line 194 carries the same expansion of `SMART`, and line 70 describes the `SMART` attribute array this
+document's `Data Structures and Defines` topic covers. `SLA` expands the Service Level Agreement term
+the previous revision states and `Variability Management` below restates; it does not appear in the
+header.*
 
 ## Description
 
@@ -143,10 +149,16 @@ block on each declaration.*
 
 ### Memory Model
 
-Both functions take a pointer to a record the caller supplies. Ownership of that storage never
-transfers: nothing in this interface establishes that an implementation retains the pointer beyond
-the call, so the caller keeps ownership and may reuse or release the storage once the function has
-returned.
+Both functions take a pointer to a record the caller supplies, and the caller supplies it because
+this interface declares no allocator: there is no call here that returns storage, and none that
+releases it. **Ownership therefore does not transfer** - there is no release call an implementation
+could use, so the caller remains responsible for freeing the record - but **what happens to the
+pointer after the call is not stated.** This interface says nothing about whether an implementation
+retains it, and that silence is not permission: it must not be read as a guarantee that reusing or
+releasing the storage the moment the function returns is safe. The conservative course is storage
+that outlives the caller's use of this interface; a caller that releases the record immediately is
+relying on behaviour this interface has not stated, and should establish it with the vendor rather
+than infer it from this specification.
 
 #### Caller Responsibilities
 
@@ -270,9 +282,58 @@ Each log entry should include a timestamp, the log level and a message describin
 condition. This standard format makes log files easier to parse and compare across vendors and
 components.
 
+**Handling of device identity in log and debug output.** This interface carries no password, key,
+token or other credential \- there is no such field in either record it populates, and no argument
+of either declaration accepts one \- so nothing here needs the secret-handling rules a
+credential-bearing HAL requires. It does carry device identity, and that is excluded from the log
+described above on the same terms:
+
+- `eSTMGRDeviceInfo.m_deviceID` and `eSTMGRDeviceInfo.m_serialNumber` each identify one specific
+  part in one specific unit, and the header states that the two are not required to carry the same
+  value, so both are identifiers in their own right.
+- `eSTMGRDeviceInfo.m_manufacturer`, `m_model`, `m_firmwareVersion` and `m_hwVersion` identify the
+  part rather than the unit. On their own they are not personal data; together with a device
+  identifier, or with a subscriber record, they narrow a unit to a small population.
+- `eSTMGRHealthInfo.m_deviceID` repeats the identifier in the health record, so a health or
+  diagnostic path discloses it as readily as an inventory path.
+
+The following requirements bind the vendor implementation and the `RDK-B` caller equally.
+
+- **No identifier is written to log output at any severity.** Not at **FATAL**, and not at **DEBUG**
+  or **TRACE** either: a value too sensitive for **INFO** does not become acceptable lower down the
+  ladder, and a build that enables fine-grained tracing must not become a build that publishes the
+  serial number of every unit in a fleet.
+- **Redact with one fixed marker, and never emit a fragment.** A prefix, a suffix, a length or a
+  hash is not a redaction: an identifier prefix generally names a manufacturer and a production
+  batch, which is most of what an identifier discloses. Where a record must say what it acted on, it
+  names the operation, the outcome and a non-identifying discriminator \- the device type from
+  `eSTMGRDeviceType`, or the index within the call \- and substitutes the same fixed marker for the
+  identifier itself.
+- **Crash artefacts and telemetry are in scope.** A core file, a crash report, a diagnostic bundle
+  collected off the device and any telemetry or metrics record are log output for the purpose of
+  these rules. An identifier kept out of `emmc_vendor_hal.log` and then carried off the device in a
+  crash artefact has not been protected. This matters more here than in most HALs, because the whole
+  purpose of `CcspHalEmmcGetHealthInfo` is to feed health reporting, and a health record that is
+  forwarded with its `m_deviceID` intact turns a diagnostic pipeline into an identifier feed.
+- **Clear after use.** Both records are caller-allocated, so clearing is the caller's to do:
+  overwrite the record once it has been read rather than leaving identity in storage that will be
+  reused, and do the same before releasing a heap-allocated record. An implementation clears its own
+  working copies on the same terms.
+- **A failure status does not license logging the input.** `RDK_STMGR_RETURN_INIT_FAILURE` and
+  `RDK_STMGR_RETURN_GENERIC_FAILURE` convey no detail, which is exactly the situation in which an
+  implementation is tempted to log what it read. It records the operation and the status instead. On
+  failure the record's content is undefined in any case, so there is nothing in it worth logging.
+- **The interface enforces none of this.** `include/ccsp_hal_emmc.h` declares no redaction helper, no
+  opaque identity type and no flag by which a caller could ask an implementation to suppress these
+  values; every identity field is a plain `char` array that any format string will print. An
+  integrator establishes that a vendor implementation observes these rules by inspection or by
+  contract, and treats their absence from a vendor log as unverified until it has done so.
+
 *Sources: the previous revision of this specification for the log file name and for the requirement
 that levels follow Linux standard logging; the severity ladder and entry format are the corpus-wide
-convention this repository's requirement invokes.*
+convention this repository's requirement invokes; `include/ccsp_hal_emmc.h` \- the identity fields of
+`eSTMGRDeviceInfo` and `eSTMGRHealthInfo`, the absence of any credential field in either record, and
+the `eSTMGRReturns` values, for the identity-handling requirements.*
 
 ### Memory and performance requirements
 
@@ -356,7 +417,7 @@ The role of adjusting the interface, guided by versioning, rests solely within a
 requirements. Thereafter, vendors are obliged to align their implementation with a designated version
 of the interface. As per `SLA` terms, they may transition to newer versions based on demand needs.
 
-Each API interface will be versioned using [Semantic Versioning 2.0.0](https://semver.org/), and the
+Each API interface will be versioned using [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html), and the
 vendor code will comply with a specific version of the interface.
 
 Two facts about *this* interface qualify that policy, and a caller needs both:
@@ -420,9 +481,10 @@ HAL's behalf.
 
 The only lifecycle is that of the caller's own record. A caller allocates an `eSTMGRHealthInfo` or an
 `eSTMGRDeviceInfo`, passes its address, reads the populated fields, and deallocates it when it is no
-longer needed. The implementation populates the record in place and retains nothing: nothing in this
-interface establishes that it keeps the pointer beyond the call, so the storage may be reused or
-released as soon as the function has returned.
+longer needed. The implementation populates the record in place. **Whether it also keeps the
+pointer is not stated by this interface**, so - as `Memory Model` above sets out - a caller must not
+take that silence as permission to reuse or release the storage the moment the function returns; the
+conservative course is a record that outlives the caller's use of the interface.
 
 *Source: `include/ccsp_hal_emmc.h` \- both declarations and their `@param[out]` blocks.*
 
@@ -603,7 +665,7 @@ behaviour and thread safety \- is in the Doxygen block on each declaration in
   structure: identity and class, the operational and health flags, the diagnostics union and the four
   lifetime and health attribute lists.
   Signature: `eSTMGRReturns CcspHalEmmcGetHealthInfo(eSTMGRHealthInfo* pHealthInfo)`, declared at
-  [`ccsp_hal_emmc.h:423`](../../include/ccsp_hal_emmc.h).
+  [`ccsp_hal_emmc.h:465`](../../include/ccsp_hal_emmc.h).
 
 **Device information retrieval**
 
@@ -612,7 +674,7 @@ behaviour and thread safety \- is in the Doxygen block on each declaration in
   description, manufacturer, model, serial number, firmware and hardware version, declared ATA
   standard and `SMART` support.
   Signature: `eSTMGRReturns CcspHalEmmcGetDeviceInfo(eSTMGRDeviceInfo* pDeviceInfo)`, declared at
-  [`ccsp_hal_emmc.h:517`](../../include/ccsp_hal_emmc.h).
+  [`ccsp_hal_emmc.h:602`](../../include/ccsp_hal_emmc.h).
 
 There is no third function: no initialization, no teardown, no setter, no callback registration and
 no event delivery. A specification that named one would be describing an interface this repository
