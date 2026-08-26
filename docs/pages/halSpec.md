@@ -193,8 +193,8 @@ surface, which carries no power-related type or argument.*
 **There are no asynchronous notifications.** A caller cannot subscribe to a storage event through
 this interface, and the evidence is in the header rather than in this statement alone:
 
-- The callback type that would carry an event is present only as a commented-out declaration
-  ([`include/ccsp_hal_emmc.h:315`](../../include/ccsp_hal_emmc.h)), so it is not declared at all.
+- No callback type is declared: the header declares no function-pointer typedef that an event
+  could be delivered through ([`include/ccsp_hal_emmc.h`](../../include/ccsp_hal_emmc.h)).
 - No registration, subscription or unsubscription function is declared anywhere in the header.
 - Consequently `eSTMGREvents`, `eSTMGREventMessage` and `eSTMGRCallBackData` are **unreachable
   through the declared API surface**, even though the documentation generator extracts them and a
@@ -203,7 +203,7 @@ this interface, and the evidence is in the header rather than in this statement 
 A caller that needs to observe a change re-reads the record by calling the corresponding function
 again. The interface offers no mechanism by which it would be told.
 
-*Source: `include/ccsp_hal_emmc.h` \- the commented-out callback declaration, the absence of any
+*Source: `include/ccsp_hal_emmc.h` \- the absence of any callback typedef, the absence of any
 registration function, and the `@warning` blocks on `eSTMGREvents` and `eSTMGREventMessage` that
 state the same conclusion.*
 

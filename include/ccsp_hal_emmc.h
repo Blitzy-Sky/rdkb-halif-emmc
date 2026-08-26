@@ -84,7 +84,24 @@ typedef enum _stmgr_ReturnCode {
     RDK_STMGR_RETURN_SUCCESS = 0,          /*!< The requested information was read and the caller's structure has been populated. */
     RDK_STMGR_RETURN_GENERIC_FAILURE = -1, /*!< The read failed for a reason the implementation attributes to itself or to the storage subsystem. The caller's structure must be treated as unpopulated. */
     RDK_STMGR_RETURN_INIT_FAILURE = -2,    /*!< The implementation could not bring up the resources it needs to reach the device. This interface declares no initialization call, so the code reports a failure internal to the implementation rather than a step the caller omitted. */
-    RDK_STMGR_RETURN_INVALID_INPUT = -3,   /*!< The implementation reported the call as rejected on an input or state check it makes. Which condition produced it, whether the read had been attempted, and whether anything was written through the caller's pointer are all unstated, so the caller's structure must be treated as unpopulated - as it must for every failure code - and a repeat of the same call in the same state must not be assumed to behave the same way. Passing a non-NULL pointer is a caller pre-condition; NULL is the one invalid input a callee can detect at all, so it is at most one example of what may map here rather than the definition of the code, which this interface neither restricts to NULL nor enumerates further, and a caller must not read the absence of this code as evidence that its arguments were accepted as valid. What cannot be reported here is a non-NULL pointer that does not address writable storage of the declared type: C gives an implementation no way to determine where a pointer came from or how far it extends, so such a call is written through as though it were correct - undefined behaviour rather than a reported error. */
+    /**
+     * Which condition produced this code, whether the read had been attempted, and
+     * whether anything was written through the caller's pointer are all unstated, so a
+     * repeat of the same call in the same state must not be assumed to behave the same
+     * way.
+     *
+     * Passing a non-NULL pointer is a caller pre-condition. NULL is the one invalid
+     * input a callee can detect at all, so it is at most one example of what may map
+     * here rather than the definition of the code, which this interface neither
+     * restricts to NULL nor enumerates further. A caller must not read the absence of
+     * this code as evidence that its arguments were accepted as valid.
+     *
+     * What cannot be reported here is a non-NULL pointer that does not address writable
+     * storage of the declared type: C gives an implementation no way to determine where
+     * a pointer came from or how far it extends, so such a call is written through as
+     * though it were correct - undefined behaviour rather than a reported error.
+     */
+    RDK_STMGR_RETURN_INVALID_INPUT = -3,   /*!< The implementation reported the call as rejected on an input or state check it makes. The caller's structure must be treated as unpopulated, as it must for every failure code. */
     RDK_STMGR_RETURN_UNKNOWN_FAILURE = -4  /*!< The read failed for a reason the implementation cannot attribute. This interface does not partition the unattributable case further from RDK_STMGR_RETURN_GENERIC_FAILURE, so a caller cannot distinguish the two by cause. */
 } eSTMGRReturns;
 
@@ -141,13 +158,13 @@ typedef enum _stmgr_DeviceStatus {
  *
  * @brief Storage event identifiers carried by eSTMGREventMessage.
  *
- * @warning No function declared in this header delivers these events. The callback
- *          type that would carry them is present only as a commented-out declaration,
- *          and the repository specification states under `Asynchronous Notification
- *          Model` that there are no asynchronous notifications
- *          (`docs/pages/halSpec.md`). A caller cannot subscribe to a storage event
- *          through this interface; the identifiers are declared because the message
- *          type that uses them is part of the shared storage data model.
+ * @warning No function declared in this header delivers these events, and no callback
+ *          type that would carry them is declared here; the repository specification
+ *          states under `Asynchronous Notification Model` that there are no
+ *          asynchronous notifications (`docs/pages/halSpec.md`). A caller cannot
+ *          subscribe to a storage event through this interface; the identifiers are
+ *          declared because the message type that uses them is part of the shared
+ *          storage data model.
  *
  * @see eSTMGREventMessage
  */
@@ -272,11 +289,10 @@ typedef struct _stmgr_Health {
 /**
  * @brief A storage event, the device it concerns and the diagnostic context for it.
  *
- * @warning No function declared in this header delivers this message. The callback
- *          type that would carry it is present only as a commented-out declaration,
- *          and the repository specification states under `Asynchronous Notification
- *          Model` that there are no asynchronous notifications
- *          (`docs/pages/halSpec.md`).
+ * @warning No function declared in this header delivers this message, and no callback
+ *          type that would carry it is declared here; the repository specification
+ *          states under `Asynchronous Notification Model` that there are no
+ *          asynchronous notifications (`docs/pages/halSpec.md`).
  *
  * @see eSTMGREvents
  */
@@ -293,9 +309,8 @@ typedef struct _stmgr_EventMessage {
  * @brief The device context that accompanies a storage callback.
  *
  * @warning No function declared in this header registers a callback, so nothing
- *          delivers this structure. The callback type it belongs to is present only
- *          as a commented-out declaration, and the repository specification states
- *          under `Asynchronous Notification Model` that there are no asynchronous
+ *          delivers this structure, and the repository specification states under
+ *          `Asynchronous Notification Model` that there are no asynchronous
  *          notifications (`docs/pages/halSpec.md`).
  */
 typedef struct _stmgr_CallBackData{
@@ -304,15 +319,6 @@ typedef struct _stmgr_CallBackData{
 }eSTMGRCallBackData;
 
 /** @} */  //END OF GROUP EMMC_HAL_TYPES
-
-/*
- * The event callback type below is retained as a commented-out declaration. It is
- * not part of the interface: no registration function is declared here, so the
- * eSTMGREvents, eSTMGREventMessage and eSTMGRCallBackData types above are reachable
- * by a caller only as declarations. The repository specification states under
- * `Asynchronous Notification Model` that there are no asynchronous notifications.
- */
-//typedef void (*fnSTMGR_EventCallback)(eSTMGREventMessage*);
 
 // HAL Functions
 
