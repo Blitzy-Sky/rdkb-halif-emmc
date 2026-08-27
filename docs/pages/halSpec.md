@@ -7,7 +7,15 @@
 | 2024-03-12 | Initial specification, published with release `1.0.0`. The page declared no document revision of its own. | 1.0.0 |
 | 2026-08-24 | Restructured to the canonical HAL specification topic set. API surface, data types, status reporting and the absence of an asynchronous path documented against `include/ccsp_hal_emmc.h`. | 1.1.0 |
 
-**Provenance of this page.** It was renamed from `docs/pages/eMMCHalSpec.md` to `docs/pages/halSpec.md` in the same change that rewrote it against the canonical topic set. Git records a rename only where the two versions still resemble each other, and a full rewrite does not, so `git log --follow -- docs/pages/halSpec.md` begins at that change: the revisions before it are reached with `git log -- docs/pages/eMMCHalSpec.md`. That resemblance is measured, and the threshold is 50% by default, so lowering it to git's floor \- `git log --follow -M1% -- docs/pages/halSpec.md` \- is worth trying first: where it pairs the two paths it shows both stretches of history in one listing, and where the rewrite kept too little of the original for git to pair them at any threshold the second command above remains the only route to the earlier revisions.
+**Provenance of this page.** It was renamed from `docs/pages/eMMCHalSpec.md` to the canonical `docs/pages/` specification page in the same change that rewrote it against the canonical topic set. Git records a rename only where the two versions still resemble each other, and a full rewrite does not, so a `--follow` listing of the canonical path begins at that change, and the revisions before it are reached by listing the legacy path instead:
+
+```sh
+git log --follow -- docs/pages/halSpec.md
+git log --follow -M1% -- docs/pages/halSpec.md
+git log -- docs/pages/eMMCHalSpec.md
+```
+
+That resemblance is measured, and the threshold is 50% by default, so lowering it to git's floor with the second command above is worth trying first: where it pairs the two paths it shows both stretches of history in one listing, and where the rewrite kept too little of the original for git to pair them at any threshold the third command remains the only route to the earlier revisions.
 
 The `Version` column above is the revision of **this document** and nothing else. Three further
 version identities exist in this repository and none of them is the document revision, so they are
@@ -24,8 +32,8 @@ recorded here once, separately, to keep them apart:
   the abbreviated commit hash. That string identifies a build, **not** a version of the interface or
   of this document, and it changes with every commit.
 
-*Sources: the repository-root `CHANGELOG.md`, symlinked into this directory as
-`docs/pages/CHANGELOG.md`, and this repository's tag `1.0.0` for the release identity;
+*Sources: the repository-root changelog, symlinked into this directory and rendered into this
+documentation set, and this repository's tag `1.0.0` for the release identity;
 `include/ccsp_hal_emmc.h` for the absence of a version macro; `docs/generate_docs.sh` for
 `PROJECT_VERSION`.*
 
@@ -73,7 +81,7 @@ demand rather than at boot, and it carries no session, no configuration and no n
 That makes it the smallest complete HAL contract in this workspace and a useful worked example when
 establishing patterns that will later be applied to larger interfaces.
 
-*Sources: `include/ccsp_hal_emmc.h` for the declared surface; the superproject `README.md` of the
+*Sources: `include/ccsp_hal_emmc.h` for the declared surface; the superproject README of the
 RDK-B HAL workspace for the subject matter and for the absence of an owning service. That file lives
 outside this repository, so it is cited by name rather than linked.*
 
@@ -194,7 +202,7 @@ surface, which carries no power-related type or argument.*
 this interface, and the evidence is in the header rather than in this statement alone:
 
 - No callback type is declared: the header declares no function-pointer typedef that an event
-  could be delivered through ([`include/ccsp_hal_emmc.h`](../../include/ccsp_hal_emmc.h)).
+  could be delivered through (`include/ccsp_hal_emmc.h`).
 - No registration, subscription or unsubscription function is declared anywhere in the header.
 - Consequently `eSTMGREvents`, `eSTMGREventMessage` and `eSTMGRCallBackData` are **unreachable
   through the declared API surface**, even though the documentation generator extracts them and a
@@ -378,19 +386,19 @@ author should treat those as open questions for the interface owner, not as beha
 topics that cite it \- above all `include/ccsp_hal_emmc.h`, on which `Data Structures and Defines`,
 `API Surface`, `State Diagram` and every per-function statement depend. This repository declares no
 `CODEOWNERS`, so the addressee for that review is the maintainer group that the repository-root
-`CONTRIBUTING.md`, symlinked into this directory as `docs/pages/CONTRIBUTING.md`, directs
+contribution guide, symlinked into this directory and rendered into this documentation set, directs
 contributions to: raise an issue in the repository's issue tracker, open a pull request, and the team
 reviews it before it is merged to mainline.
 
 *Sources: the previous revision of this specification for the tool list; the repository-root
-`CONTRIBUTING.md` for the review addressee; the superproject `README.md` of the RDK-B HAL workspace
+contribution guide for the review addressee; the superproject README of the RDK-B HAL workspace
 for reference-platform availability.*
 
 ### Licensing
 
 The eMMC HAL implementation is expected to be released under the Apache License 2.0. The licence
 text, the copyright notice and the attribution notice accompanying this interface are in
-[`LICENSE.md`](LICENSE.md), [`COPYING.md`](COPYING.md) and [`NOTICE.md`](NOTICE.md).
+[LICENSE.md](LICENSE.md), [COPYING.md](COPYING.md) and [NOTICE.md](NOTICE.md).
 
 *Sources: the previous revision of this specification; the repository's own `LICENSE`, `COPYING` and
 `NOTICE` files, and the Apache-2.0 header carried by `include/ccsp_hal_emmc.h`.*
@@ -447,7 +455,7 @@ answer for this topic as "None".*
 ## Interface API Documentation
 
 All HAL function prototypes and datatype definitions are available in the
-[`ccsp_hal_emmc.h`](../../include/ccsp_hal_emmc.h) header file, where each declaration carries the
+`ccsp_hal_emmc.h` header file, where each declaration carries the
 per-function detail \- argument bounds, pre-conditions, post-conditions, every return value and its
 consequence, blocking behaviour and thread safety \- that this document indexes rather than repeats.
 
@@ -526,7 +534,7 @@ the `@post` block on both declarations.*
 
 ### Data Structures and Defines
 
-Every type below is declared in [`ccsp_hal_emmc.h`](../../include/ccsp_hal_emmc.h) under the
+Every type below is declared in `ccsp_hal_emmc.h` under the
 `EMMC_HAL_TYPES` documentation group. Line references are to that file at the revision this document
 describes.
 
@@ -657,7 +665,7 @@ This interface declares **two** functions. Both are read-only, both are called o
 single caller-allocated out-parameter and both return an `eSTMGRReturns` status code. Per-function
 detail \- argument bounds, pre- and post-conditions, the consequence of each return value, blocking
 behaviour and thread safety \- is in the Doxygen block on each declaration in
-[`ccsp_hal_emmc.h`](../../include/ccsp_hal_emmc.h).
+[ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h).
 
 **Health retrieval**
 
@@ -665,7 +673,7 @@ behaviour and thread safety \- is in the Doxygen block on each declaration in
   structure: identity and class, the operational and health flags, the diagnostics union and the four
   lifetime and health attribute lists.
   Signature: `eSTMGRReturns CcspHalEmmcGetHealthInfo(eSTMGRHealthInfo* pHealthInfo)`, declared at
-  [`ccsp_hal_emmc.h:465`](../../include/ccsp_hal_emmc.h).
+  [ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h) line 465.
 
 **Device information retrieval**
 
@@ -674,13 +682,13 @@ behaviour and thread safety \- is in the Doxygen block on each declaration in
   description, manufacturer, model, serial number, firmware and hardware version, declared ATA
   standard and `SMART` support.
   Signature: `eSTMGRReturns CcspHalEmmcGetDeviceInfo(eSTMGRDeviceInfo* pDeviceInfo)`, declared at
-  [`ccsp_hal_emmc.h:602`](../../include/ccsp_hal_emmc.h).
+  [ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h) line 602.
 
 There is no third function: no initialization, no teardown, no setter, no callback registration and
 no event delivery. A specification that named one would be describing an interface this repository
 does not declare.
 
-*Source: `include/ccsp_hal_emmc.h` \- the `EMMC_HAL_APIS` group, which contains exactly these two
+*Source: [include/ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h) \- the `EMMC_HAL_APIS` group, which contains exactly these two
 declarations.*
 
 ### Sequence Diagram

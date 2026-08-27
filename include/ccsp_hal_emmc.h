@@ -27,7 +27,7 @@
  * a caller reads, and the two functions that retrieve them. The values reported are
  * read by the vendor implementation from the data the Linux block drivers populate,
  * as stated in the repository specification under `Theory of operation and key
- * concepts` (`docs/pages/halSpec.md`).
+ * concepts` in the HAL specification.
  *
  * The interface declares no initialization, open, close or teardown call: a caller
  * retrieves information on demand and no session is opened or closed. It also
@@ -78,7 +78,7 @@
  * These five codes are the complete set this interface defines. Every function
  * reports its outcome synchronously through its return value; no failure is reported
  * out of band, as stated under `Internal Error Handling` in the repository
- * specification (`docs/pages/halSpec.md`).
+ * specification.
  */
 typedef enum _stmgr_ReturnCode {
     RDK_STMGR_RETURN_SUCCESS = 0,          /*!< The requested information was read and the caller's structure has been populated. */
@@ -161,7 +161,7 @@ typedef enum _stmgr_DeviceStatus {
  * @warning No function declared in this header delivers these events, and no callback
  *          type that would carry them is declared here; the repository specification
  *          states under `Asynchronous Notification Model` that there are no
- *          asynchronous notifications (`docs/pages/halSpec.md`). A caller cannot
+ *          asynchronous notifications in the HAL specification. A caller cannot
  *          subscribe to a storage event through this interface; the identifiers are
  *          declared because the message type that uses them is part of the shared
  *          storage data model.
@@ -292,7 +292,7 @@ typedef struct _stmgr_Health {
  * @warning No function declared in this header delivers this message, and no callback
  *          type that would carry it is declared here; the repository specification
  *          states under `Asynchronous Notification Model` that there are no
- *          asynchronous notifications (`docs/pages/halSpec.md`).
+ *          asynchronous notifications in the HAL specification.
  *
  * @see eSTMGREvents
  */
@@ -311,7 +311,7 @@ typedef struct _stmgr_EventMessage {
  * @warning No function declared in this header registers a callback, so nothing
  *          delivers this structure, and the repository specification states under
  *          `Asynchronous Notification Model` that there are no asynchronous
- *          notifications (`docs/pages/halSpec.md`).
+ *          notifications in the HAL specification.
  */
 typedef struct _stmgr_CallBackData{
    bool isSDCard;       /*!< True when the device the callback concerns is an SD card; false for any other class of medium, including an embedded MMC part. */
@@ -343,7 +343,7 @@ typedef struct _stmgr_CallBackData{
  * operational and health flags, the diagnostics union and the four lifetime and
  * health attribute lists. The values are those the vendor implementation reads from
  * the data the Linux block drivers populate, as stated under `Theory of operation and
- * key concepts` in the repository specification (`docs/pages/halSpec.md`). A caller
+ * key concepts` in the repository specification. A caller
  * invokes this at runtime whenever health information is needed; the repository
  * specification states under `Initialization and Startup` that it is not called
  * during system bootup.
@@ -479,7 +479,7 @@ eSTMGRReturns CcspHalEmmcGetHealthInfo (eSTMGRHealthInfo* pHealthInfo);
  * number, firmware and hardware revisions, declared ATA standard and SMART support
  * flag. The values are those the vendor implementation reads from the data the Linux
  * block drivers populate, as stated under `Theory of operation and key concepts` in
- * the repository specification (`docs/pages/halSpec.md`). A caller invokes this at
+ * the repository specification. A caller invokes this at
  * runtime whenever device information is needed; the repository specification states
  * under `Initialization and Startup` that it is not called during system bootup.
  *
