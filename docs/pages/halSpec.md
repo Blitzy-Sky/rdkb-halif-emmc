@@ -4,10 +4,10 @@
 
 | Date | Comment | Version |
 | --- | --- | --- |
-| 03/12/24 | Initial specification, published with release `1.0.0`. The page declared no document revision of its own. | 1.0.0 |
-| 08/24/26 | Restructured to the canonical HAL specification topic set. API surface, data types, status reporting and the absence of an asynchronous path documented against `include/ccsp_hal_emmc.h`. | 1.1.0 |
+| 2024-03-12 | Initial specification, published with release `1.0.0`. The page declared no document revision of its own. | 1.0.0 |
+| 2026-08-24 | Restructured to the canonical HAL specification topic set. API surface, data types, status reporting and the absence of an asynchronous path documented against `include/ccsp_hal_emmc.h`. | 1.1.0 |
 
-**Provenance of this page.** It was renamed from `docs/pages/eMMCHalSpec.md` to `docs/pages/halSpec.md` in the same change that rewrote it against the canonical topic set. Git records a rename only where the two versions still resemble each other, and a full rewrite does not, so `git log --follow -- docs/pages/halSpec.md` begins at that change: the revisions before it are reached with `git log -- docs/pages/eMMCHalSpec.md`.
+**Provenance of this page.** It was renamed from `docs/pages/eMMCHalSpec.md` to `docs/pages/halSpec.md` in the same change that rewrote it against the canonical topic set. Git records a rename only where the two versions still resemble each other, and a full rewrite does not, so `git log --follow -- docs/pages/halSpec.md` begins at that change: the revisions before it are reached with `git log -- docs/pages/eMMCHalSpec.md`. That resemblance is measured, and the threshold is 50% by default, so lowering it to git's floor \- `git log --follow -M1% -- docs/pages/halSpec.md` \- is worth trying first: where it pairs the two paths it shows both stretches of history in one listing, and where the rewrite kept too little of the original for git to pair them at any threshold the second command above remains the only route to the earlier revisions.
 
 The `Version` column above is the revision of **this document** and nothing else. Three further
 version identities exist in this repository and none of them is the document revision, so they are
@@ -16,7 +16,7 @@ recorded here once, separately, to keep them apart:
 - **Interface version** \- **not specified by this interface.** `include/ccsp_hal_emmc.h` declares no
   version macro, so a caller can neither test the interface version at compile time nor read it at
   runtime. See `Variability Management` for what follows from that.
-- **Release tag** \- `1.0.0`, the only tag in this repository, dated 12 March 2024. It is written
+- **Release tag** \- `1.0.0`, the only tag in this repository, dated 2024-03-12. It is written
   without a `v` prefix. This is the release the document describes.
 - **Generated-site version string** \- `docs/generate_docs.sh` passes `PROJECT_VERSION` from
   `git describe --tags`, which takes the form `1.0.0-<n>-g<abbreviated-commit>` whenever the built
