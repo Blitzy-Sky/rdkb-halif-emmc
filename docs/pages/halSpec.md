@@ -49,7 +49,7 @@ documentation set, and this repository's tag `1.0.0` for the release identity;
 *Source: the terms this document itself uses. `HAL`, `RDK-B` and `OEM` are carried over from the
 previous revision of this specification, which defined those three and no others. `eMMC` and `SMART`
 expand terms `include/ccsp_hal_emmc.h` uses literally - the header's own `m_hasSMARTSupport` comment at
-line 194 carries the same expansion of `SMART`, and line 70 describes the `SMART` attribute array this
+line 211 carries the same expansion of `SMART`, and line 70 describes the `SMART` attribute array this
 document's `Data Structures and Defines` topic covers. `SLA` expands the Service Level Agreement term
 the previous revision states and `Variability Management` below restates; it does not appear in the
 header.*
@@ -624,15 +624,15 @@ part of the shared storage data model.
 
 | Structure | Declared at | What it represents and whether a caller uses it |
 | --- | --- | --- |
-| `eSTMGRDeviceIDs` | `ccsp_hal_emmc.h:169` | A bounded list of device identifiers. **Not populated by any declared function** |
-| `eSTMGRDeviceInfo` | `ccsp_hal_emmc.h:195` | Identity, capacity and condition of one device. **Caller-constructed**, populated by `CcspHalEmmcGetDeviceInfo` |
-| `eSTMGRDeviceInfoList` | `ccsp_hal_emmc.h:208` | A bounded list of `eSTMGRDeviceInfo` records. **Not populated by any declared function** |
-| `eSTMGRPartitionInfo` | `ccsp_hal_emmc.h:226` | Identity, mount path, format, condition and capacity of one partition. **Not populated by any declared function** |
-| `eSTMGRDiagAttributes` | `ccsp_hal_emmc.h:234` | One `SMART` diagnostic attribute as a name and a value. Read inside a health record |
-| `eSTMGRDiagAttributesList` | `ccsp_hal_emmc.h:242` | Up to 20 `eSTMGRDiagAttributes` with the count that are valid. Read inside a health record |
-| `eSTMGRHealthInfo` | `ccsp_hal_emmc.h:270` | Operational and health state with the diagnostics union and four attribute lists. **Caller-constructed**, populated by `CcspHalEmmcGetHealthInfo` |
-| `eSTMGREventMessage` | `ccsp_hal_emmc.h:290` | An event, the device it concerns and its diagnostic context. **Not delivered by any declared function** |
-| `eSTMGRCallBackData` | `ccsp_hal_emmc.h:304` | Callback context: an SD-card flag and a mount path. **Not passed by any declared function** |
+| `eSTMGRDeviceIDs` | `ccsp_hal_emmc.h:183` | A bounded list of device identifiers. **Not populated by any declared function** |
+| `eSTMGRDeviceInfo` | `ccsp_hal_emmc.h:199` | Identity, capacity and condition of one device. **Caller-constructed**, populated by `CcspHalEmmcGetDeviceInfo` |
+| `eSTMGRDeviceInfoList` | `ccsp_hal_emmc.h:222` | A bounded list of `eSTMGRDeviceInfo` records. **Not populated by any declared function** |
+| `eSTMGRPartitionInfo` | `ccsp_hal_emmc.h:233` | Identity, mount path, format, condition and capacity of one partition. **Not populated by any declared function** |
+| `eSTMGRDiagAttributes` | `ccsp_hal_emmc.h:248` | One `SMART` diagnostic attribute as a name and a value. Read inside a health record |
+| `eSTMGRDiagAttributesList` | `ccsp_hal_emmc.h:256` | Up to 20 `eSTMGRDiagAttributes` with the count that are valid. Read inside a health record |
+| `eSTMGRHealthInfo` | `ccsp_hal_emmc.h:274` | Operational and health state with the diagnostics union and four attribute lists. **Caller-constructed**, populated by `CcspHalEmmcGetHealthInfo` |
+| `eSTMGREventMessage` | `ccsp_hal_emmc.h:299` | An event, the device it concerns and its diagnostic context. **Not delivered by any declared function** |
+| `eSTMGRCallBackData` | `ccsp_hal_emmc.h:316` | Callback context: an SD-card flag and a mount path. **Not passed by any declared function** |
 
 Three points a caller needs from the two records it does construct:
 
@@ -667,13 +667,15 @@ detail \- argument bounds, pre- and post-conditions, the consequence of each ret
 behaviour and thread safety \- is in the Doxygen block on each declaration in
 [ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h).
 
+**Where these pointers resolve.** The locators in this topic are relative paths into `include/ccsp_hal_emmc.h`, the form this documentation set uses throughout, so they resolve on GitHub and in a checkout \- the surface a developer using this repository reads. They do **not** resolve from inside the generated documentation site: the generator copies each link target verbatim into a page one directory below this file, so a site served with `docs/output/html` as its root has nothing above that root to reach and answers `404`, and opened from the filesystem the same target does not exist. Follow a source pointer on GitHub or in a checkout; inside the generated site, reach the same declaration through its `Files` and function-index pages.
+
 **Health retrieval**
 
 - `CcspHalEmmcGetHealthInfo` \- reads the health record of the eMMC device into a caller-supplied
   structure: identity and class, the operational and health flags, the diagnostics union and the four
   lifetime and health attribute lists.
   Signature: `eSTMGRReturns CcspHalEmmcGetHealthInfo(eSTMGRHealthInfo* pHealthInfo)`, declared at
-  [ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h) line 465.
+  [ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h) line 471.
 
 **Device information retrieval**
 
@@ -682,7 +684,7 @@ behaviour and thread safety \- is in the Doxygen block on each declaration in
   description, manufacturer, model, serial number, firmware and hardware version, declared ATA
   standard and `SMART` support.
   Signature: `eSTMGRReturns CcspHalEmmcGetDeviceInfo(eSTMGRDeviceInfo* pDeviceInfo)`, declared at
-  [ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h) line 602.
+  [ccsp_hal_emmc.h](../../include/ccsp_hal_emmc.h) line 608.
 
 There is no third function: no initialization, no teardown, no setter, no callback registration and
 no event delivery. A specification that named one would be describing an interface this repository
