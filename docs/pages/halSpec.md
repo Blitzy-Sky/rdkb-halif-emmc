@@ -20,11 +20,10 @@
 The diagram below describes a high-level software architecture of the eMMC HAL module stack.
 
 ```mermaid
-flowchart TD;
-    Caller["RDK-B Middleware"] <-->
-    HAL["eMMC HAL (ccsp_hal_emmc.h)"] <-->
-    Vendor["Vendor Software"] <-->
-    BlockDrivers["Linux block drivers"]
+flowchart TD
+    Caller["RDK-B Middleware"] <--> HAL["eMMC HAL - ccsp_hal_emmc.h"]
+    HAL <--> Vendor["Vendor Software"]
+    Vendor <--> Hardware["Linux block drivers and eMMC hardware"]
 ```
 
 The eMMC HAL is an abstraction layer over the Linux block drivers of the eMMC part, used to read its
