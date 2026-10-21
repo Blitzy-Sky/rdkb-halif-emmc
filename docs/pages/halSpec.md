@@ -169,8 +169,7 @@ errors using third-party tools such as `Coverity`, `Black Duck` and `Valgrind`, 
 memory leaks, memory corruption and similar defects before deployment.
 
 eMMC is not available on the HUB6 or XER10 reference platforms, so the runtime behaviour this
-document describes, including blocking and resource use, rests on the interface definition rather
-than on observation of a running implementation.
+document describes, including blocking and resource use, has not been observed on reference hardware.
 
 Any change to a file listed under `Source References` obliges a review of the topics that depend on
 it, above all `include/ccsp_hal_emmc.h`. That review is addressed to the maintainer group the
