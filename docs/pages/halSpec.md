@@ -13,7 +13,6 @@
 - `RDK-B` \- Reference Design Kit for Broadband Devices
 - `eMMC` \- Embedded MultiMediaCard, the managed NAND flash device this interface reports on
 - `SMART` \- Self-Monitoring, Analysis and Reporting Technology, the device self-diagnostics facility
-- `SLA` \- Service Level Agreement
 
 ## Description
 
@@ -27,7 +26,7 @@ flowchart TD
 ```
 
 The eMMC HAL is an abstraction layer over the Linux block drivers of the eMMC part, used to read its
-health and device information. It is a common HAL, and **no dedicated middleware service owns it**:
+health and device information. It is a common HAL, and no dedicated middleware service owns it:
 any RDK-B Middleware component or process that needs those two records calls it directly.
 
 ## Optional Components
@@ -61,7 +60,7 @@ Either function may block until the eMMC hardware is ready.
 
 ### Threading Model
 
-**The interface is not required to be thread-safe.** Any module that calls an eMMC HAL function is
+**The interface is not required to be thread-safe:** Any module that calls an eMMC HAL function is
 responsible for making its calls in a thread-safe manner, which in practice means serialising them.
 
 Vendors may create internal threads and event mechanisms to meet their operational requirements.
@@ -102,7 +101,7 @@ power-related value.
 
 ### Asynchronous Notification Model
 
-**There are no asynchronous notifications.** `eSTMGREvents`, `eSTMGREventMessage` and
+**There are no asynchronous notifications:** `eSTMGREvents`, `eSTMGREventMessage` and
 `eSTMGRCallBackData` belong to the shared storage data model, and no declared function delivers them.
 A caller that needs to observe a change calls the corresponding function again and compares the
 records.
@@ -145,14 +144,13 @@ The component is required to record all errors and critical informative messages
 be identified and triaged and the functional flow of the system can be understood. Logging should use
 `syslog`; `printf` is discouraged unless `syslog` is not available.
 
-Where a vendor implementation logs, it must log to a file named `emmc_vendor_hal.log`. Log levels
-follow the Linux standard logging system, in descending order of severity: **FATAL**, **ERROR**,
-**WARNING**, **NOTICE**, **INFO**, **DEBUG** and **TRACE**. Each entry includes a timestamp, the log
-level and a message describing the event or condition.
+Where a vendor implementation logs, it must log to a file named `emmc_vendor_hal.log`.
+
+Log levels follow the Linux standard logging system, in descending order of severity: `FATAL`, `ERROR`, `WARNING`, `NOTICE`, `INFO`, `DEBUG` and `TRACE`. Each log entry carries a timestamp, the log level and a message describing the event or condition.
 
 Implementations must not log credentials, secrets, security-sensitive information, or other sensitive data.
 For this interface, device identifiers and serial numbers are sensitive data. The rule applies at
-every log level, including **DEBUG** and **TRACE**, and to crash reports, diagnostic bundles and
+every log level, including `DEBUG` and `TRACE`, and to crash reports, diagnostic bundles and
 telemetry; a failure status does not justify logging the record a call read.
 
 ### Memory and performance requirements
@@ -163,23 +161,15 @@ functions populate a fixed-size record, so neither has an input-dependent cost.
 
 ### Quality Control
 
-To maintain software quality, it is recommended that the eMMC HAL implementation is verified without
-errors using third-party tools such as `Coverity`, `Black Duck` and `Valgrind`, to detect and resolve
-memory leaks, memory corruption and similar defects before deployment.
+An implementation should pass analysis with third-party tools such as `Coverity`, `Black Duck` and `Valgrind` without reported issues. Neither the HAL implementation nor the vendor software beneath it may introduce memory leaks or memory corruption.
 
-eMMC is not available on the HUB6 or XER10 reference platforms, so the runtime behaviour this
-document describes, including blocking and resource use, has not been observed on reference hardware.
+This HAL is not available on the HUB6 or XER10 reference platforms, so the runtime behaviour this document describes has not been observed on reference hardware.
 
-Any change to a file listed under `Source References` obliges a review of the topics that depend on
-it, above all `include/ccsp_hal_emmc.h`. That review is addressed to the maintainer group the
-repository's contribution guide directs contributions to: raise an issue in the repository's issue
-tracker, open a pull request, and the team reviews it before it is merged to mainline.
+Any change to a file listed under `Source References` obliges a review of this document by the repository maintainers, through the issue and pull-request process `CONTRIBUTING.md` describes.
 
 ### Licensing
 
-The eMMC HAL implementation is expected to be released under the Apache License 2.0. The licence
-text is in [LICENSE.md](LICENSE.md), also published as [COPYING.md](COPYING.md), and the copyright
-and attribution notice is in [NOTICE.md](NOTICE.md).
+The interface definition is licensed under the Apache License 2.0, with the full text in `LICENSE` and the attribution notice in `NOTICE`. An implementation of this interface is expected to be released under the Apache License 2.0.
 
 ### Build Requirements
 
@@ -189,12 +179,7 @@ dependency is the C standard header `<stdbool.h>`.
 
 ### Variability Management
 
-The role of adjusting the interface, guided by versioning, rests solely within architecture
-requirements. Thereafter, vendors are obliged to align their implementation with a designated version
-of the interface. As per `SLA` terms, they may transition to newer versions based on demand needs.
-
-Each API interface will be versioned using [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html), and the
-vendor code will comply with a specific version of the interface.
+Changes to the interface are controlled by versioning. Vendors implement a designated version of the interface and move to later versions as their service agreements require. Each interface version follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html), and vendor code complies with a specific version.
 
 The header has no conditional compilation other than its include guard, so the declarations a caller
 compiles against are the same on every platform.
@@ -230,12 +215,12 @@ identity, capacity and the condition flags. Each has one function that populates
 
 #### Object Lifecycles
 
-**The HAL creates no objects.** There is no handle, descriptor or open/close pairing. The only
+**The HAL creates no objects:** There is no handle, descriptor or open/close pairing. The only
 lifecycle is that of the caller's own record, which `Memory Model` governs.
 
 #### Method Sequencing
 
-**No call ordering is imposed.** The two functions may be called in any order, independently and as
+**No call ordering is imposed:** The two functions may be called in any order, independently and as
 often as needed. Neither depends on the other having been called, and neither leaves state behind
 that the other observes.
 
@@ -254,7 +239,7 @@ Only `eSTMGRHealthInfo` and `eSTMGRDeviceInfo` appear in a function signature, a
 two structures a caller constructs. Every other type either appears inside one of those two or is
 used by no declared function; the tables mark both cases.
 
-**Valued macros.** The macros are array sizes and element counts. Where a count accompanies an array,
+**Valued macros:** The macros are array sizes and element counts. Where a count accompanies an array,
 the count bounds what a caller may read, not the macro.
 
 | Define | Value | What it bounds |
@@ -266,10 +251,10 @@ the count bounds what a caller may read, not the macro.
 | `RDK_STMGR_DIAGNOSTICS_BLOB_LENGTH` | 2048 | Size in bytes of the opaque diagnostics buffer `eSTMGRHealthInfo.m_diagnostics.m_blob` |
 | `RDK_STMGR_MAX_DIAGNOSTIC_ATTRIBUTES` | 20 | Element count of the `SMART` attribute array in `eSTMGRDiagAttributesList` |
 
-**The status code both functions return, `eSTMGRReturns`.** Its five codes, their values and the
+**The status code both functions return, `eSTMGRReturns`:** Its five codes, their values and the
 caller action for each are listed under `Internal Error Handling`.
 
-**The class of medium a record describes, `eSTMGRDeviceType`.**
+**The class of medium a record describes, `eSTMGRDeviceType`:**
 
 | Member | Value |
 | --- | --- |
@@ -285,10 +270,10 @@ The enumeration is shared with the wider RDK storage data model, which is why it
 HAL does not report on. An eMMC implementation reports `RDK_STMGR_DEVICE_TYPE_EMMCCARD`.
 `RDK_STMGR_DEVICE_TYPE_MAX` is a bound, not a device class.
 
-**Condition flags, `eSTMGRDeviceStatus` \- the type most easily mis-used.**
+**Condition flags, `eSTMGRDeviceStatus` \- the type most easily mis-used:**
 
 **The non-zero members are bit flags, so a caller must test a status field with a bitwise AND and
-must not compare it for equality against a single member.** An implementation may report several
+must not compare it for equality against a single member:** An implementation may report several
 conditions at once by combining them with a bitwise OR, so a field carrying both
 `RDK_STMGR_DEVICE_STATUS_READ_ONLY` and `RDK_STMGR_DEVICE_STATUS_DISK_FULL` equals neither of them.
 
@@ -303,7 +288,7 @@ conditions at once by combining them with a bitwise OR, so a field carrying both
 | `RDK_STMGR_DEVICE_STATUS_WRITE_FAILURE` | `1 << 5` | A write against the medium failed |
 | `RDK_STMGR_DEVICE_STATUS_UNKNOWN` | `1 << 6` | The implementation could not determine the condition |
 
-**Event identifiers with no delivery path, `eSTMGREvents`.**
+**Event identifiers with no delivery path, `eSTMGREvents`:**
 
 | Member | Value | Meaning |
 | --- | --- | --- |
@@ -311,7 +296,7 @@ conditions at once by combining them with a bitwise OR, so a field carrying both
 | `RDK_STMGR_EVENT_HEALTH_WARNING` | 101 | A health indicator crossed a threshold |
 | `RDK_STMGR_EVENT_DEVICE_FAILURE` | 102 | The device failed and can no longer be relied on |
 
-**Structures.**
+**Structures:**
 
 | Structure | What it represents and whether a caller uses it |
 | --- | --- |
@@ -339,14 +324,14 @@ Two points a caller needs from the records it constructs, in addition to the dia
 This interface declares **two** functions. Both are read-only, are called on demand, take a single
 caller-allocated out-parameter and return an `eSTMGRReturns` status code.
 
-**Health retrieval**
+**Health retrieval:**
 
 - `CcspHalEmmcGetHealthInfo` \- reads the health record of the eMMC device into a caller-supplied
   structure: identity and class, the operational and health flags, the diagnostics union and the four
   lifetime and health attribute lists.
   Signature: `eSTMGRReturns CcspHalEmmcGetHealthInfo(eSTMGRHealthInfo* pHealthInfo)`.
 
-**Device information retrieval**
+**Device information retrieval:**
 
 - `CcspHalEmmcGetDeviceInfo` \- reads the identity and condition of the eMMC device into a
   caller-supplied structure: identifier, device class, capacity, condition flags, partition
